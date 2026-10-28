@@ -1,5 +1,6 @@
 package hexlet.code;
 
+import hexlet.code.schemas.NumberSchema;
 import hexlet.code.schemas.StringSchema;
 
 /** Entry point of the validation library. */
@@ -12,5 +13,14 @@ public class Validator {
      */
     public StringSchema string() {
         return new StringSchema();
+    }
+
+    /**
+     * Creates a new schema for validating number values.
+     *
+     * @return a fresh {@link NumberSchema} instance
+     */
+    public NumberSchema number() {
+        return new NumberSchema();
     }
 }

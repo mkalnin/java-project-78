@@ -2,6 +2,7 @@ package hexlet.code;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import hexlet.code.schemas.NumberSchema;
 import hexlet.code.schemas.StringSchema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,18 @@ class ValidatorTest {
     private static final int MIN_LENGTH = 5;
     private static final int LONG_MIN_LENGTH = 10;
     private static final int SHORT_MIN_LENGTH = 4;
+
+    private static final int POSITIVE_NUMBER = 10;
+    private static final int NEGATIVE_NUMBER = -10;
+    private static final int ZERO = 0;
+    private static final int RANGE_MIN = 5;
+    private static final int RANGE_MAX = 10;
+    private static final int RANGE_MIDDLE = 7;
+    private static final int BELOW_RANGE = 4;
+    private static final int ABOVE_RANGE = 11;
+    private static final int NARROW_RANGE_MIN = 6;
+    private static final int NARROW_RANGE_MAX = 9;
+    private static final int NEGATIVE_IN_RANGE = -5;
 
     private Validator validator;
 
@@ -122,6 +135,104 @@ class ValidatorTest {
     void testSchemasAreIndependent() {
         StringSchema first = validator.string().required();
         StringSchema second = validator.string();
+
+        assertThat(first.isValid(null)).isFalse();
+        assertThat(second.isValid(null)).isTrue();
+    }
+
+    @Test
+    void testNumberReturnsNewSchemaEachTime() {
+        NumberSchema first = validator.number();
+        NumberSchema second = validator.number();
+
+        assertThat(first).isNotNull().isNotSameAs(second);
+    }
+
+    @Test
+    void testEmptyNumberSchemaAcceptsAnyNumber() {
+        NumberSchema schema = validator.number();
+
+        assertThat(schema.isValid(null)).isTrue();
+        assertThat(schema.isValid(RANGE_MIN)).isTrue();
+        assertThat(schema.isValid(NEGATIVE_IN_RANGE)).isTrue();
+        assertThat(schema.isValid(ZERO)).isTrue();
+    }
+
+    @Test
+    void testNumberRequired() {
+        NumberSchema schema = validator.number();
+
+        assertThat(schema.isValid(null)).isTrue();
+
+        schema.required();
+
+        assertThat(schema.isValid(null)).isFalse();
+        assertThat(schema.isValid(POSITIVE_NUMBER)).isTrue();
+        assertThat(schema.isValid(NEGATIVE_NUMBER)).isTrue();
+        assertThat(schema.isValid(ZERO)).isTrue();
+    }
+
+    @Test
+    void testNumberPositive() {
+        NumberSchema schema = validator.number().positive();
+
+        assertThat(schema.isValid(null)).isTrue();
+        assertThat(schema.isValid(POSITIVE_NUMBER)).isTrue();
+        assertThat(schema.isValid(NEGATIVE_NUMBER)).isFalse();
+        assertThat(schema.isValid(ZERO)).isFalse();
+    }
+
+    @Test
+    void testNumberPositiveWithRequired() {
+        NumberSchema schema = validator.number().positive().required();
+
+        assertThat(schema.isValid(null)).isFalse();
+        assertThat(schema.isValid(POSITIVE_NUMBER)).isTrue();
+        assertThat(schema.isValid(NEGATIVE_NUMBER)).isFalse();
+        assertThat(schema.isValid(ZERO)).isFalse();
+    }
+
+    @Test
+    void testNumberRange() {
+        NumberSchema schema = validator.number().range(RANGE_MIN, RANGE_MAX);
+
+        assertThat(schema.isValid(null)).isTrue();
+        assertThat(schema.isValid(RANGE_MIN)).isTrue();
+        assertThat(schema.isValid(POSITIVE_NUMBER)).isTrue();
+        assertThat(schema.isValid(RANGE_MIDDLE)).isTrue();
+        assertThat(schema.isValid(BELOW_RANGE)).isFalse();
+        assertThat(schema.isValid(ABOVE_RANGE)).isFalse();
+    }
+
+    @Test
+    void testNumberRangeReplacesPreviousConstraint() {
+        NumberSchema schema = validator.number().range(RANGE_MIN, RANGE_MAX);
+
+        schema.range(NARROW_RANGE_MIN, NARROW_RANGE_MAX);
+
+        assertThat(schema.isValid(RANGE_MIN)).isFalse();
+        assertThat(schema.isValid(POSITIVE_NUMBER)).isFalse();
+        assertThat(schema.isValid(NARROW_RANGE_MIN)).isTrue();
+        assertThat(schema.isValid(NARROW_RANGE_MAX)).isTrue();
+    }
+
+    @Test
+    void testNumberAllConstraintsWorkTogether() {
+        NumberSchema schema = validator.number().required().positive().range(RANGE_MIN, RANGE_MAX);
+
+        assertThat(schema.isValid(null)).isFalse();
+        assertThat(schema.isValid(RANGE_MIN)).isTrue();
+        assertThat(schema.isValid(POSITIVE_NUMBER)).isTrue();
+        assertThat(schema.isValid(BELOW_RANGE)).isFalse();
+        assertThat(schema.isValid(ABOVE_RANGE)).isFalse();
+        assertThat(schema.isValid(NEGATIVE_IN_RANGE)).isFalse();
+        assertThat(schema.isValid(ZERO)).isFalse();
+    }
+
+    @Test
+    void testNumberSchemasAreIndependent() {
+        NumberSchema first = validator.number().required();
+        NumberSchema second = validator.number();
 
         assertThat(first.isValid(null)).isFalse();
         assertThat(second.isValid(null)).isTrue();
