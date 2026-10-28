@@ -2,8 +2,11 @@ package hexlet.code;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import hexlet.code.schemas.MapSchema;
 import hexlet.code.schemas.NumberSchema;
 import hexlet.code.schemas.StringSchema;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,6 +27,9 @@ class ValidatorTest {
     private static final int NARROW_RANGE_MIN = 6;
     private static final int NARROW_RANGE_MAX = 9;
     private static final int NEGATIVE_IN_RANGE = -5;
+
+    private static final int MAP_SIZE = 2;
+    private static final int OTHER_MAP_SIZE = 1;
 
     private Validator validator;
 
@@ -233,6 +239,100 @@ class ValidatorTest {
     void testNumberSchemasAreIndependent() {
         NumberSchema first = validator.number().required();
         NumberSchema second = validator.number();
+
+        assertThat(first.isValid(null)).isFalse();
+        assertThat(second.isValid(null)).isTrue();
+    }
+
+    @Test
+    void testMapReturnsNewSchemaEachTime() {
+        MapSchema first = validator.map();
+        MapSchema second = validator.map();
+
+        assertThat(first).isNotNull().isNotSameAs(second);
+    }
+
+    @Test
+    void testEmptyMapSchemaAcceptsAnyMap() {
+        MapSchema schema = validator.map();
+
+        assertThat(schema.isValid(null)).isTrue();
+        assertThat(schema.isValid(new HashMap<>())).isTrue();
+        assertThat(schema.isValid(Map.of("key1", "value1"))).isTrue();
+    }
+
+    @Test
+    void testMapRequired() {
+        MapSchema schema = validator.map();
+
+        assertThat(schema.isValid(null)).isTrue();
+
+        schema.required();
+
+        assertThat(schema.isValid(null)).isFalse();
+        assertThat(schema.isValid(new HashMap<>())).isTrue();
+        assertThat(schema.isValid(Map.of("key1", "value1"))).isTrue();
+    }
+
+    @Test
+    void testMapSizeof() {
+        MapSchema schema = validator.map().sizeof(MAP_SIZE);
+
+        assertThat(schema.isValid(null)).isTrue();
+        assertThat(schema.isValid(new HashMap<>())).isFalse();
+        assertThat(schema.isValid(Map.of("key1", "value1"))).isFalse();
+        assertThat(schema.isValid(Map.of("key1", "value1", "key2", "value2"))).isTrue();
+        assertThat(schema.isValid(Map.of("key1", "value1", "key2", "value2", "key3", "value3")))
+                .isFalse();
+    }
+
+    @Test
+    void testMapSizeofWithRequired() {
+        MapSchema schema = validator.map().required().sizeof(MAP_SIZE);
+
+        assertThat(schema.isValid(null)).isFalse();
+        assertThat(schema.isValid(new HashMap<>())).isFalse();
+        assertThat(schema.isValid(Map.of("key1", "value1"))).isFalse();
+        assertThat(schema.isValid(Map.of("key1", "value1", "key2", "value2"))).isTrue();
+    }
+
+    @Test
+    void testMapSizeofReplacesPreviousConstraint() {
+        MapSchema schema = validator.map().sizeof(MAP_SIZE);
+
+        schema.sizeof(OTHER_MAP_SIZE);
+
+        assertThat(schema.isValid(Map.of("key1", "value1"))).isTrue();
+        assertThat(schema.isValid(Map.of("key1", "value1", "key2", "value2"))).isFalse();
+    }
+
+    @Test
+    void testMapExampleFromDescription() {
+        MapSchema schema = validator.map();
+
+        assertThat(schema.isValid(null)).isTrue();
+
+        schema.required();
+
+        assertThat(schema.isValid(null)).isFalse();
+        assertThat(schema.isValid(new HashMap<>())).isTrue();
+
+        Map<String, String> data = new HashMap<>();
+        data.put("key1", "value1");
+        assertThat(schema.isValid(data)).isTrue();
+
+        schema.sizeof(MAP_SIZE);
+
+        assertThat(schema.isValid(data)).isFalse();
+
+        data.put("key2", "value2");
+        assertThat(schema.isValid(data)).isTrue();
+    }
+
+    @Test
+    void testMapSchemasAreIndependent() {
+        MapSchema first = validator.map().required();
+        MapSchema second = validator.map();
 
         assertThat(first.isValid(null)).isFalse();
         assertThat(second.isValid(null)).isTrue();
