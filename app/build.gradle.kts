@@ -63,6 +63,14 @@ tasks.jacocoTestReport {
     }
 }
 
+sonar {
+    properties {
+        property("sonar.projectKey", "mkalnin_java-project-78")
+        property("sonar.organization", "mkalnin")
+        property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
+    }
+}
+
 spotless {
     java {
         importOrder()
