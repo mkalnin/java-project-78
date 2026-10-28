@@ -56,6 +56,19 @@ public abstract class BaseSchema<T> {
     }
 
     /**
+     * Converts an arbitrary value to the type this schema validates. Used for nested validation,
+     * where values come from an untyped container. Returns {@code null} for values of a different
+     * type, so that they are treated as missing.
+     *
+     * @param value value to convert
+     * @return the value as {@code T}, or {@code null} if it is not of the expected type
+     */
+    @SuppressWarnings("unchecked")
+    public T cast(Object value) {
+        return (T) value;
+    }
+
+    /**
      * Tells whether the value should be treated as missing for this schema type.
      *
      * @param value non-null value

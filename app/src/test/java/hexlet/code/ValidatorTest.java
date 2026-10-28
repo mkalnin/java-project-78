@@ -2,6 +2,7 @@ package hexlet.code;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import hexlet.code.schemas.BaseSchema;
 import hexlet.code.schemas.MapSchema;
 import hexlet.code.schemas.NumberSchema;
 import hexlet.code.schemas.StringSchema;
@@ -30,6 +31,13 @@ class ValidatorTest {
 
     private static final int MAP_SIZE = 2;
     private static final int OTHER_MAP_SIZE = 1;
+
+    private static final String FIRST_NAME = "firstName";
+    private static final String LAST_NAME = "lastName";
+    private static final String AGE = "age";
+    private static final int MIN_LAST_NAME_LENGTH = 2;
+    private static final int MIN_AGE = 18;
+    private static final int MAX_AGE = 120;
 
     private Validator validator;
 
@@ -336,5 +344,115 @@ class ValidatorTest {
 
         assertThat(first.isValid(null)).isFalse();
         assertThat(second.isValid(null)).isTrue();
+    }
+
+    @Test
+    void testShapeExampleFromDescription() {
+        MapSchema schema = validator.map();
+
+        Map<String, BaseSchema<String>> schemas = new HashMap<>();
+        schemas.put(FIRST_NAME, validator.string().required());
+        schemas.put(LAST_NAME, validator.string().required().minLength(MIN_LAST_NAME_LENGTH));
+
+        schema.shape(schemas);
+
+        Map<String, String> human1 = new HashMap<>();
+        human1.put(FIRST_NAME, "John");
+        human1.put(LAST_NAME, "Smith");
+        assertThat(schema.isValid(human1)).isTrue();
+
+        Map<String, String> human2 = new HashMap<>();
+        human2.put(FIRST_NAME, "John");
+        human2.put(LAST_NAME, null);
+        assertThat(schema.isValid(human2)).isFalse();
+
+        Map<String, String> human3 = new HashMap<>();
+        human3.put(FIRST_NAME, "Anna");
+        human3.put(LAST_NAME, "B");
+        assertThat(schema.isValid(human3)).isFalse();
+    }
+
+    @Test
+    void testShapeAcceptsNullMapWhenNotRequired() {
+        MapSchema schema = validator.map().shape(Map.of(FIRST_NAME, validator.string().required()));
+
+        assertThat(schema.isValid(null)).isTrue();
+        assertThat(schema.isValid(new HashMap<>())).isFalse();
+    }
+
+    @Test
+    void testShapeWithRequiredMap() {
+        MapSchema schema =
+                validator.map().required().shape(Map.of(FIRST_NAME, validator.string().required()));
+
+        assertThat(schema.isValid(null)).isFalse();
+        assertThat(schema.isValid(new HashMap<>())).isFalse();
+        assertThat(schema.isValid(Map.of(FIRST_NAME, "John"))).isTrue();
+    }
+
+    @Test
+    void testShapeIgnoresKeysMissingFromMap() {
+        MapSchema schema = validator.map().shape(Map.of(FIRST_NAME, validator.string().required()));
+
+        assertThat(schema.isValid(new HashMap<>())).isFalse();
+        assertThat(schema.isValid(Map.of(FIRST_NAME, "John"))).isTrue();
+        assertThat(schema.isValid(Map.of(FIRST_NAME, "John", "extra", "value"))).isTrue();
+    }
+
+    @Test
+    void testShapeWithNumberSchema() {
+        MapSchema schema =
+                validator
+                        .map()
+                        .shape(Map.of(AGE, validator.number().required().range(MIN_AGE, MAX_AGE)));
+
+        assertThat(schema.isValid(Map.of(AGE, MIN_AGE))).isTrue();
+        assertThat(schema.isValid(Map.of(AGE, MAX_AGE))).isTrue();
+        assertThat(schema.isValid(Map.of(AGE, MIN_AGE - 1))).isFalse();
+        assertThat(schema.isValid(Map.of(AGE, MAX_AGE + 1))).isFalse();
+        assertThat(schema.isValid(new HashMap<>())).isFalse();
+    }
+
+    @Test
+    void testShapeWithNestedMapSchema() {
+        MapSchema addressSchema =
+                validator
+                        .map()
+                        .shape(
+                                Map.of(
+                                        "city",
+                                        validator
+                                                .string()
+                                                .required()
+                                                .minLength(MIN_LAST_NAME_LENGTH)));
+
+        MapSchema schema = validator.map().shape(Map.of("address", addressSchema));
+
+        assertThat(schema.isValid(Map.of("address", Map.of("city", "Moscow")))).isTrue();
+        assertThat(schema.isValid(Map.of("address", Map.of("city", "M")))).isFalse();
+        assertThat(schema.isValid(Map.of("address", new HashMap<>()))).isFalse();
+    }
+
+    @Test
+    void testShapeReplacesPreviousConstraint() {
+        MapSchema schema = validator.map().shape(Map.of(FIRST_NAME, validator.string().required()));
+
+        schema.shape(Map.of(LAST_NAME, validator.string().required()));
+
+        assertThat(schema.isValid(Map.of(LAST_NAME, "Smith"))).isTrue();
+        assertThat(schema.isValid(Map.of(FIRST_NAME, "John"))).isFalse();
+    }
+
+    @Test
+    void testShapeWorksTogetherWithSizeof() {
+        MapSchema schema =
+                validator
+                        .map()
+                        .sizeof(MAP_SIZE)
+                        .shape(Map.of(FIRST_NAME, validator.string().required()));
+
+        assertThat(schema.isValid(Map.of(FIRST_NAME, "John"))).isFalse();
+        assertThat(schema.isValid(Map.of(FIRST_NAME, "John", LAST_NAME, "Smith"))).isTrue();
+        assertThat(schema.isValid(Map.of(FIRST_NAME, "", LAST_NAME, "Smith"))).isFalse();
     }
 }
