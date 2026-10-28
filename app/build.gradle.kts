@@ -5,6 +5,7 @@ plugins {
     java
     checkstyle
     jacoco
+    id("org.sonarqube") version "6.3.1.5724"
     id("com.diffplug.spotless") version "7.0.2"
 }
 
